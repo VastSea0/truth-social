@@ -1,10 +1,10 @@
 import React from 'react';
-import TruthBox from './TruthBox';
+import TruthSocialApp from './TruthBox';
 
 function App() {
   return (
     <div className="App">
-      <TruthBox />
+      <TruthSocialApp />
     </div>
   );
 }

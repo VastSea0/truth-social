@@ -1,113 +1,123 @@
 import React, { useState, useEffect } from 'react';
+import { PlusCircle, Send, UserCircle } from 'lucide-react';
 
-export default function TruthBox() {
-  const [message, setMessage] = useState('');  // backend'den gelen mesajı tutacak state
-  const [name, setName] = useState(''); // input alanındaki değeri tutacak state
-  const [id, setId] = useState(0); 
-  const [greeting, setGreeting] = useState(''); // gönder butonuna tıklandığında gelen yanıtı tutacak state
-  
+const TruthSocialApp = () => {
+  const [message, setMessage] = useState('');
+  const [name, setName] = useState('');
+  const [id, setId] = useState(Math.floor(Math.random() * 10000));
+  const [greeting, setGreeting] = useState('');
+  const [requests, setRequests] = useState([]);
 
-  useEffect(() => { // component yüklendiğinde çalışacak fonksiyon
+  useEffect(() => {
     fetch('http://localhost:8000', {
       method: 'GET',
       credentials: 'include',
     })
-    .then(response => response.json())
-    .then(data => setMessage(data.message))
-    .catch(error => console.error('Hata:', error));
+      .then(response => response.json())
+      .then(data => setMessage(data.message))
+      .catch(error => console.error('Hata:', error));
   }, []);
 
-  // gönder butonuna tıklandığında çalışacak fonksiyon
+  useEffect(() => {
+    fetch('http://localhost:8000/requests', {
+      method: 'GET',
+      credentials: 'include',
+    })
+      .then(response => response.json())
+      .then(data => setRequests(data))
+      .catch(error => console.error('Hata:', error));
+  }, []);
+
   const handleSubmit = (e) => {
+    e.preventDefault();
     if (name === '') {
       alert('Truth box cannot be empty');
-      e.preventDefault();
     } else if (!name) {
       alert('Truth box cannot be empty');
-      e.preventDefault();
     } else if (name.length > 300) {
       alert('Truth box cannot be more than 300 characters');
-      e.preventDefault();
-    } else if (name.length < 50) {
-      alert('Truth box must be at least 50 characters');
-      e.preventDefault();
+ 
     } else {
-      e.preventDefault();
       setId(Math.floor(Math.random() * 10000));
-      console.log(id);
-      fetch('http://localhost:8000/truth', { // /truth endpointine istek at
+      fetch('http://localhost:8000/truth', {
         method: 'POST',
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name , id}), // name değerini gönder
+        body: JSON.stringify({ name, id }),
       })
-        .then(response => response.json()) // gelen yanıtı json formatına çevir
-        .then(data => setGreeting(data.greeting)) // gelen yanıttaki greeting değerini setGreeting fonksiyonu ile state'e ata
+        .then(response => response.json())
+        .then(data => {
+          setGreeting(data.greeting);
+          setRequests([...requests, { id, name, request: data.greeting }]);
+          setName(''); // Clear input after submission
+        })
         .catch(error => console.error('Hata:', error));
     }
-    
-   
-    
-   
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 py-6 flex flex-col justify-center sm:py-12">
-      <div className="relative py-3 sm:max-w-xl sm:mx-auto">
-        <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 to-light-blue-500 shadow-lg transform -skew-y-6 sm:skew-y-0 sm:-rotate-6 sm:rounded-3xl"></div>
-        <div className="relative px-4 py-10 bg-white shadow-lg sm:rounded-3xl sm:p-20">
-          <div className="max-w-md mx-auto">
-            <div className="divide-y divide-gray-200">
-              <div className="py-8 text-base leading-6 space-y-4 text-gray-700 sm:text-lg sm:leading-7">
-                <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Truth Box</h2>
-                <p className='text text-gray-400 font-bold'>Tell me a truth</p>
-                 
-                <form onSubmit={handleSubmit} className="mt-8 space-y-6">
-                  <div className="rounded-md shadow-sm -space-y-px">
-                    <div>
-                      <label htmlFor="name" className="sr-only">Truth box</label>
-                      <textarea
-                        id="name"
-                        name="name"
-                        type="text"
-                        required
-                        className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                        placeholder="Enter a truth"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <button
-                      type="submit"
-                      className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                      onSubmit={() => {
-                        setId(Math.floor(Math.random() * 10000));
-                        console.log(id);
-                      }}
-                    >
-                      Submit
-                    </button>
+    <div className="flex flex-col h-screen bg-gray-100">
+      {/* Header */}
+      <header className="bg-blue-500 text-white p-4 text-center font-bold text-xl">
+        Truth Social
+      </header>
 
-                  </div>
-                </form>
-                {
-                    /* gönder butonuna tıklandıktan sonra greeting state'i doluysa bu kısım çalışacak */
-                }
-                {greeting && (
-        
-                  <div className="mt-8 text-center">
-                    <p className="text-xl font-semibold text-gray-900">Succsess!</p>
-                  </div>
-                )} 
-              </div>
+      {/* Truth List */}
+      <main className="flex-grow overflow-y-auto">
+        {requests.map((truth) => (
+          <div key={truth.id} className="bg-white p-4 mb-2 shadow-sm">
+            <div className="flex items-center mb-2">
+              <UserCircle className="w-8 h-8 text-gray-500 mr-2" />
+              <span className="font-semibold">User {truth.id}</span>
             </div>
+            <p className="text-gray-800 mb-2">{truth.name}</p>
+            {truth.request && (
+              <p className="text-blue-500 font-semibold">{truth.request}</p>
+            )}
           </div>
+        ))}
+      </main>
+
+      {/* New Truth Input */}
+      <form onSubmit={handleSubmit} className="bg-white p-4 shadow-t-lg">
+        <div className="flex flex-col">
+          <textarea
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Share a truth (50-300 characters)..."
+            className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2"
+            rows="3"
+          />
+          <button
+            type="submit"
+            className="bg-blue-500 text-white p-2 rounded flex items-center justify-center"
+          >
+            <Send className="w-5 h-5 mr-2" /> Send Truth
+          </button>
         </div>
-      </div>
+      </form>
+
+      {/* Navigation */}
+      <nav className="bg-white border-t flex justify-around p-4">
+        <button className="text-blue-500">
+          <UserCircle className="w-6 h-6" />
+        </button>
+        <button className="text-blue-500">
+          <PlusCircle className="w-6 h-6" />
+        </button>
+      </nav>
+
+      {/* Message display (if needed) */}
+      {message && (
+        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4" role="alert">
+          <p className="font-bold">Message:</p>
+          <p>{message}</p>
+        </div>
+      )}
     </div>
   );
-}
+};
+
+export default TruthSocialApp;
