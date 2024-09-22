@@ -1,13 +1,11 @@
-// main.rs
 #![feature(decl_macro)]
 
-use std::fmt::format;
-
-use components::vector::initialize_vector;
-use rocket::{form, get, launch, post, routes, Build, Rocket};
+use rocket::{get, launch, post, routes, Build, Rocket};
 use rocket::serde::json::Json;
+use rocket::State;
 use rocket_cors::{AllowedOrigins, CorsOptions};
 use serde::{Serialize, Deserialize};
+use std::sync::Mutex;
 
 mod components;
 
@@ -17,8 +15,7 @@ struct Message {
     message: String,
 }
 
-
-// Request ve Response yapıları tanımlanıyor.
+// Request yapısı tanımlanıyor.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 struct Request {
     name: String,
@@ -29,38 +26,31 @@ struct Request {
 #[derive(Serialize, Deserialize, Clone)]
 struct Response {
     greeting: String,
-   
 }
-
-
 
 // GET metodu ile çağrıldığında "Merhaba, Dünya!" mesajını döndüren hello fonksiyonu tanımlanıyor.
 #[get("/")]
 fn hello() -> Json<Message> {
     Json(Message {
-        message: String::from("Merhaba, Dünya!"),
+        message: String::from("Welcome to Truth Socaial!"),
     })
-     
 }
 
-
-// POST metodu ile çağrıldığında "Merhaba, {name}!" mesajını döndüren greet fonksiyonu tanımlanıyor.
 #[post("/truth", data = "<request>")]
-fn greet(request: Json<Request>) -> Json<Response> {
+fn greet(request: Json<Request>, state: &State<Mutex<Vec<(u32, String, String)>>>) -> Json<Response> {
     // Gelen isteği bir değişkene atama
     let received_request = request.clone().into_inner();
-    // Gelen isteği ekrana yazdırma
+    // Gelen isteği JSON formatına dönüştürme
+    let json_request = components::converter::convert_to_json(received_request.id, received_request.name.clone(), format!("{:?}", received_request));
 
-    println!("Merhaba, {:#?}!", received_request);
+    // Vektöre ekleme
+    let mut vec = state.lock().unwrap();
+    components::vector::add_tuple_to_vector(&mut vec, received_request.id, received_request.name.clone(), json_request.clone());
 
-    // Gelen isteği JSON formatında döndürme
     Json(Response {
-        greeting: format!("Merhaba, {}!", request.name),
+        greeting: format!("{}!", received_request.name),
     })
-     
 }
-
- 
 
 #[launch]
 fn rocket() -> Rocket<Build> {
@@ -77,8 +67,7 @@ fn rocket() -> Rocket<Build> {
         .expect("CORS yapılandırması oluşturulurken hata");
 
     rocket::build()
+        .manage(Mutex::new(components::vector::initialize_vector()))
         .mount("/", routes![hello, greet])
         .attach(cors)
-    
-   
 }
