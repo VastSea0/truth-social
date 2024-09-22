@@ -1,0 +1,6 @@
+Yapılacaklar
+
+- Dosya: main.rs
+önyüzden gelen bilgileri alacak bunlar id, title ve content olacak
+ve bunlar islemeye gönderilecek bir vectore dönüşecek daha 
+sonra bütün bu vectorleri görüntüleyebileceğiz
