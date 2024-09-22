@@ -2,6 +2,9 @@
 
 Truth Social, Rust ve React kullanılarak geliştirilmiş bir sosyal medya platformudur. Kullanıcılar, gerçekleri paylaşabilir, beğenebilir ve yorum yapabilirler. Bu proje, Rust backend ve React frontend ile tam bir sosyal medya deneyimi sunar.
 
+![Screen Shot 2024-09-23 at 00 01 27](https://github.com/user-attachments/assets/49d8745e-16fd-4013-aa86-febdb647f8af)
+
+
 ## İçindekiler
 
 - [Özellikler](#özellikler)
