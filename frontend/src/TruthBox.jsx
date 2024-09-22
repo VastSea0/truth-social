@@ -1,105 +1,181 @@
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, Send, UserCircle } from 'lucide-react';
+import { PlusCircle, Send, UserCircle, Heart, MessageCircle } from 'lucide-react';
 
 const TruthSocialApp = () => {
-  const [message, setMessage] = useState('');
-  const [name, setName] = useState('');
-  const [id, setId] = useState(Math.floor(Math.random() * 10000));
-  const [greeting, setGreeting] = useState('');
-  const [requests, setRequests] = useState([]);
+  const [truths, setTruths] = useState([]);
+  const [newTruth, setNewTruth] = useState('');
+  const [category, setCategory] = useState('general');
+  const [currentUser, setCurrentUser] = useState({ id: 1, username: 'alice' });
+  const [newComment, setNewComment] = useState('');
+  const [commentingOn, setCommentingOn] = useState(null);
 
   useEffect(() => {
-    fetch('http://localhost:8000', {
+    fetchTruths();
+  }, []);
+
+  const fetchTruths = () => {
+    fetch('http://localhost:8000/truths', {
       method: 'GET',
       credentials: 'include',
     })
       .then(response => response.json())
-      .then(data => setMessage(data.message))
-      .catch(error => console.error('Hata:', error));
-  }, []);
-
-  useEffect(() => {
-    fetch('http://localhost:8000/requests', {
-      method: 'GET',
-      credentials: 'include',
-    })
-      .then(response => response.json())
-      .then(data => setRequests(data))
-      .catch(error => console.error('Hata:', error));
-  }, []);
+      .then(data => setTruths(data))
+      .catch(error => console.error('Error:', error));
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (name === '') {
-      alert('Truth box cannot be empty');
-    } else if (!name) {
-      alert('Truth box cannot be empty');
-    } else if (name.length > 300) {
-      alert('Truth box cannot be more than 300 characters');
- 
-    } else {
-      setId(Math.floor(Math.random() * 10000));
-      fetch('http://localhost:8000/truth', {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name, id }),
-      })
-        .then(response => response.json())
-        .then(data => {
-          setGreeting(data.greeting);
-          setRequests([...requests, { id, name, request: data.greeting }]);
-          setName(''); // Clear input after submission
-        })
-        .catch(error => console.error('Hata:', error));
+    if (newTruth.length < 10 || newTruth.length > 300) {
+      alert('Truth must be between 10 and 300 characters');
+      return;
     }
+
+    fetch('http://localhost:8000/truth', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ user_id: currentUser.id, content: newTruth, category }),
+    })
+      .then(response => response.json())
+      .then(data => {
+        setTruths([data, ...truths]);
+        setNewTruth('');
+      })
+      .catch(error => console.error('Error:', error));
+  };
+
+  const handleLike = (truthId) => {
+    fetch(`http://localhost:8000/like/${truthId}`, {
+      method: 'POST',
+      credentials: 'include',
+    })
+      .then(response => response.json())
+      .then(data => {
+        setTruths(truths.map(truth => truth.id === data.id ? data : truth));
+      })
+      .catch(error => console.error('Error:', error));
+  };
+
+  const handleComment = (truthId) => {
+    if (newComment.length < 1 || newComment.length > 100) {
+      alert('Comment must be between 1 and 100 characters');
+      return;
+    }
+
+    fetch('http://localhost:8000/comment', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ user_id: currentUser.id, truth_id: truthId, content: newComment }),
+    })
+      .then(response => response.json())
+      .then(data => {
+        setTruths(truths.map(truth => 
+          truth.id === truthId 
+            ? { ...truth, comments: [...truth.comments, data] }
+            : truth
+        ));
+        setNewComment('');
+        setCommentingOn(null);
+      })
+      .catch(error => console.error('Error:', error));
   };
 
   return (
     <div className="flex flex-col h-screen bg-gray-100">
-      {/* Header */}
       <header className="bg-blue-500 text-white p-4 text-center font-bold text-xl">
         Truth Social
       </header>
 
-      {/* Truth List */}
-      <main className="flex-grow overflow-y-auto">
-        {requests.map((truth) => (
-          <div key={truth.id} className="bg-white p-4 mb-2 shadow-sm">
+      <main className="flex-grow overflow-y-auto p-4">
+        <form onSubmit={handleSubmit} className="bg-white p-4 rounded-lg shadow mb-4">
+          <textarea
+            value={newTruth}
+            onChange={(e) => setNewTruth(e.target.value)}
+            placeholder="Share a truth (10-300 characters)..."
+            className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2"
+            rows="3"
+          />
+          <div className="flex justify-between items-center">
+            <select 
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="p-2 border rounded"
+            >
+              <option value="general">General</option>
+              <option value="philosophy">Philosophy</option>
+              <option value="science">Science</option>
+              <option value="life">Life</option>
+            </select>
+            <button
+              type="submit"
+              className="bg-blue-500 text-white p-2 rounded flex items-center"
+            >
+              <Send className="w-5 h-5 mr-2" /> Share Truth
+            </button>
+          </div>
+        </form>
+
+        {truths.map((truth) => (
+          <div key={truth.id} className="bg-white p-4 rounded-lg shadow mb-4">
             <div className="flex items-center mb-2">
               <UserCircle className="w-8 h-8 text-gray-500 mr-2" />
-              <span className="font-semibold">User {truth.id}</span>
+              <span className="font-semibold">User {truth.user_id}</span>
             </div>
-            <p className="text-gray-800 mb-2">{truth.name}</p>
-            {truth.request && (
-              <p className="text-blue-500 font-semibold">{truth.request}</p>
+            <p className="text-gray-800 mb-2">{truth.content}</p>
+            <div className="flex items-center text-gray-500 text-sm mb-2">
+              <span className="mr-2">{truth.category}</span>
+              <span>{truth.likes} likes</span>
+            </div>
+            <div className="flex space-x-2">
+              <button 
+                onClick={() => handleLike(truth.id)}
+                className="text-pink-500 flex items-center"
+              >
+                <Heart className="w-5 h-5 mr-1" /> Like
+              </button>
+              <button 
+                onClick={() => setCommentingOn(truth.id)}
+                className="text-blue-500 flex items-center"
+              >
+                <MessageCircle className="w-5 h-5 mr-1" /> Comment
+              </button>
+            </div>
+            {commentingOn === truth.id && (
+              <div className="mt-2">
+                <textarea
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder="Add a comment (1-100 characters)..."
+                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2"
+                  rows="2"
+                />
+                <button
+                  onClick={() => handleComment(truth.id)}
+                  className="bg-blue-500 text-white p-2 rounded"
+                >
+                  Post Comment
+                </button>
+              </div>
+            )}
+            {truth.comments.length > 0 && (
+              <div className="mt-2 border-t pt-2">
+                <h4 className="font-semibold mb-1">Comments:</h4>
+                {truth.comments.map((comment) => (
+                  <div key={comment.id} className="text-sm text-gray-600 mb-1">
+                    <span className="font-medium">User {comment.user_id}:</span> {comment.content}
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         ))}
       </main>
 
-      {/* New Truth Input */}
-      <form onSubmit={handleSubmit} className="bg-white p-4 shadow-t-lg">
-        <div className="flex flex-col">
-          <textarea
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Share a truth (50-300 characters)..."
-            className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2"
-            rows="3"
-          />
-          <button
-            type="submit"
-            className="bg-blue-500 text-white p-2 rounded flex items-center justify-center"
-          >
-            <Send className="w-5 h-5 mr-2" /> Send Truth
-          </button>
-        </div>
-      </form>
-
-      {/* Navigation */}
       <nav className="bg-white border-t flex justify-around p-4">
         <button className="text-blue-500">
           <UserCircle className="w-6 h-6" />
@@ -108,14 +184,6 @@ const TruthSocialApp = () => {
           <PlusCircle className="w-6 h-6" />
         </button>
       </nav>
-
-      {/* Message display (if needed) */}
-      {message && (
-        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4" role="alert">
-          <p className="font-bold">Message:</p>
-          <p>{message}</p>
-        </div>
-      )}
     </div>
   );
 };
