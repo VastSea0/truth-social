@@ -7,3 +7,4 @@ edition = "2021"
 serde = { version = "1.0", features = ["derive"] }
 rocket = { version = "0.5.0-rc.2", features = ["json"] }
 rocket_cors = "0.6.0-alpha1"
+serde_json = "1.0.128"
