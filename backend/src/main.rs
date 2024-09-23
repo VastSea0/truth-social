@@ -70,7 +70,6 @@ fn get_truths(state: &State<AppState>) -> Json<Vec<Truth>> {
 fn create_truth(request: Json<CreateTruthRequest>, state: &State<AppState>) -> Json<Truth> {
     let mut state = state.lock().unwrap();
     let (_, ref mut truths) = *state;
-    
     let new_truth = Truth {
         id: truths.len() as u32 + 1,
         user_id: request.user_id,
@@ -79,7 +78,6 @@ fn create_truth(request: Json<CreateTruthRequest>, state: &State<AppState>) -> J
         category: request.category.clone(),
         comments: Vec::new(),
     };
-    
     truths.push(new_truth.clone());
     Json(new_truth)
 }
@@ -88,10 +86,8 @@ fn create_truth(request: Json<CreateTruthRequest>, state: &State<AppState>) -> J
 fn like_truth(truth_id: u32, state: &State<AppState>) -> Json<Truth> {
     let mut state = state.lock().unwrap();
     let (_, ref mut truths) = *state;
-    
     let truth = truths.iter_mut().find(|t| t.id == truth_id).expect("Truth not found");
     truth.likes += 1;
-    
     Json(truth.clone())
 }
 
@@ -99,15 +95,12 @@ fn like_truth(truth_id: u32, state: &State<AppState>) -> Json<Truth> {
 fn create_comment(request: Json<CreateCommentRequest>, state: &State<AppState>) -> Json<Comment> {
     let mut state = state.lock().unwrap();
     let (_, ref mut truths) = *state;
-    
     let truth = truths.iter_mut().find(|t| t.id == request.truth_id).expect("Truth not found");
-    
     let new_comment = Comment {
         id: truth.comments.len() as u32 + 1,
         user_id: request.user_id,
         content: request.content.clone(),
     };
-    
     truth.comments.push(new_comment.clone());
     Json(new_comment)
 }
@@ -120,7 +113,7 @@ fn get_user(user_id: u32, state: &State<AppState>) -> Json<User> {
 }
 
 #[launch]
-fn rocket<T: std::marker::Send + 'static>() -> Rocket<Build> {
+fn rocket() -> Rocket<Build> {
     let cors = CorsOptions::default()
         .allowed_origins(AllowedOrigins::all())
         .allowed_methods(
@@ -138,7 +131,7 @@ fn rocket<T: std::marker::Send + 'static>() -> Rocket<Build> {
             User { id: 1, username: String::from("alice"), bio: String::from("Truth seeker") },
             User { id: 2, username: String::from("bob"), bio: String::from("Love spreading truth") },
         ],
-        Vec::<T>::new(),
+        Vec::<Truth>::new(),
     ));
 
     rocket::build()
